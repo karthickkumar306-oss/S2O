@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { supabase } from "@/lib/supabase";
 
 type Order = {
   id: string;
@@ -16,13 +17,75 @@ type Order = {
 export default function Dashboard() {
   const [order, setOrder] = useState<Order | null>(null);
 
-  useEffect(() => {
-    const savedOrder = localStorage.getItem("s2o-latest-order");
+useEffect(() => {
+  const loadLatestOrder = async () => {
+    const { data, error } = await supabase
+      .from("orders")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-    if (savedOrder) {
-      setOrder(JSON.parse(savedOrder));
+    if (error) {
+      console.error("Dashboard order error:", error);
+      return;
     }
-  }, []);
+
+    if (data) {
+      setOrder({
+        id: data.id,
+        customer: data.customer,
+        mobile: data.mobile || "",
+        items: Array.isArray(data.items)
+          ? data.items
+          : Object.values(data.items || {}),
+        total: Number(data.total),
+        status: data.status,
+        createdAt: data.created_at,
+      });
+    }
+  };
+
+  loadLatestOrder();
+
+  const channel = supabase
+    .channel("orders-dashboard")
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "orders",
+      },
+      (payload) => {
+        if (
+          payload.eventType === "INSERT" ||
+          payload.eventType === "UPDATE"
+        ) {
+          const data = payload.new as any;
+
+          setOrder({
+            id: data.id,
+            customer: data.customer,
+            mobile: data.mobile || "",
+            items: Array.isArray(data.items)
+              ? data.items
+              : Object.values(data.items || {}),
+            total: Number(data.total),
+            status: data.status,
+            createdAt: data.created_at,
+          });
+        }
+      }
+    )
+    .subscribe((status) => {
+      console.log("Orders realtime:", status);
+    });
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, []);
 
   const updateStatus = (
     status: "New" | "Preparing" | "Ready" | "Completed"

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 const categories = ["All", "Rolls", "Burgers", "Snacks", "Drinks"];
 
@@ -112,8 +113,7 @@ export default function Home() {
       return updated;
     });
   };
-
-const placeOrder = () => {
+const placeOrder = async () => {
   if (!customerName.trim()) {
     alert("Please enter your name.");
     return;
@@ -121,11 +121,6 @@ const placeOrder = () => {
 
   if (mobile.length !== 10) {
     alert("Please enter a valid 10-digit mobile number.");
-    return;
-  }
-
-  if (totalItems === 0) {
-    alert("Please add at least one item.");
     return;
   }
 
@@ -138,6 +133,28 @@ const placeOrder = () => {
     status: "New",
     createdAt: new Date().toISOString(),
   };
+
+  const { error } = await supabase
+    .from("orders")
+    .insert({
+      customer: customerName,
+      mobile: mobile,
+      items: cart,
+      total: subtotal,
+      status: "New",
+    });
+
+  if (error) {
+    console.error(
+  "Order save error:",
+  error.message,
+  error.details,
+  error.hint,
+  error.code
+);
+    alert("Could not place order. Please try again.");
+    return;
+  }
 
   localStorage.setItem("s2o-latest-order", JSON.stringify(order));
 
