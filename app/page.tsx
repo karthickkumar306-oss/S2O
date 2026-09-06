@@ -74,7 +74,36 @@ const [orderStatus, setOrderStatus] = useState<
     category === "All"
       ? menuItems
       : menuItems.filter((item) => item.category === category);
+ 
+      useEffect(() => {
+  if (!orderPlaced || !mobile) return;
 
+  const channel = supabase
+    .channel("customer-order-status")
+    .on(
+      "postgres_changes",
+      {
+        event: "UPDATE",
+        schema: "public",
+        table: "orders",
+        filter: `mobile=eq.${mobile}`,
+      },
+      (payload) => {
+        const updatedOrder = payload.new as {
+          status: "New" | "Preparing" | "Ready" | "Completed";
+        };
+
+        setOrderStatus(updatedOrder.status);
+      }
+    )
+    .subscribe((status) => {
+      console.log("Customer order realtime:", status);
+    });
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, [orderPlaced, mobile]);
   const cartItems = useMemo(() => {
     return menuItems.filter((item) => cart[item.id]);
   }, [cart]);
