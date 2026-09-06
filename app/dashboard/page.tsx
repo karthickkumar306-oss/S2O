@@ -87,22 +87,27 @@ useEffect(() => {
   };
 }, []);
 
-  const updateStatus = (
-    status: "New" | "Preparing" | "Ready" | "Completed"
-  ) => {
-    if (!order) return;
+ const updateStatus = async (
+  status: "New" | "Preparing" | "Ready" | "Completed"
+) => {
+  if (!order) return;
 
-    const updatedOrder = {
-      ...order,
-      status,
-    };
+  const { error } = await supabase
+    .from("orders")
+    .update({ status })
+    .eq("id", order.id);
 
-    setOrder(updatedOrder);
-    localStorage.setItem(
-      "s2o-latest-order",
-      JSON.stringify(updatedOrder)
-    );
-  };
+  if (error) {
+    console.error("Status update error:", error);
+    alert("Could not update order status.");
+    return;
+  }
+
+  setOrder({
+    ...order,
+    status,
+  });
+};
 
   return (
     <main className="min-h-screen bg-zinc-100 text-zinc-900">

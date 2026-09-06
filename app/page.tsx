@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
 const categories = ["All", "Rolls", "Burgers", "Snacks", "Drinks"];
@@ -65,7 +65,12 @@ export default function Home() {
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [customerName, setCustomerName] = useState("");
   const [mobile, setMobile] = useState("");
+const [customerName, setCustomerName] = useState("");
+const [mobile, setMobile] = useState("");
 
+const [orderStatus, setOrderStatus] = useState<
+  "New" | "Preparing" | "Ready" | "Completed"
+>("New");
   const filteredItems =
     category === "All"
       ? menuItems
