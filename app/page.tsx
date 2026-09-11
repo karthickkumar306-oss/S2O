@@ -234,9 +234,10 @@ const { data, error } = await supabase
     return;
   }
 
-localStorage.setItem("s2o-latest-order", JSON.stringify(...));
+localStorage.setItem("s2o-latest-order", JSON.stringify(order));
 
 setOrderId(data.id);
+localStorage.setItem("s2o-order-id", data.id);
 setOrderPlaced(true);
 };
 
