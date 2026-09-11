@@ -11,13 +11,42 @@ const createCartId = () =>
     .slice(2, 8)}`;
 
 export default function CartQrSetup() {
-  const [shopName, setShopName] = useState("Street Bites");
-  const [cartId, setCartId] = useState("street-bites-main");
+ const [shopName, setShopName] = useState("");
+const [cartId, setCartId] = useState("");
   const [publicOrigin, setPublicOrigin] = useState("");
 
   useEffect(() => {
     setPublicOrigin(window.location.origin);
   }, []);
+  useEffect(() => {
+  const loadVendor = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      window.location.href = "/login";
+      return;
+    }
+
+    const { data: vendor, error } = await supabase
+      .from("vendors")
+      .select("cart_id, shop_name")
+      .eq("user_id", user.id)
+      .single();
+
+    if (error || !vendor) {
+      console.error("Vendor loading error:", error);
+      alert("Vendor account not found.");
+      return;
+    }
+
+    setCartId(vendor.cart_id);
+    setShopName(vendor.shop_name);
+  };
+
+  loadVendor();
+}, []);
 
   const cleanCartId = useMemo(
     () =>

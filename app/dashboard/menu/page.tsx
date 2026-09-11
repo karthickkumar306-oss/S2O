@@ -47,22 +47,31 @@ export default function MenuManagement() {
     setLoading(false);
   };
 
-  useEffect(() => {
-const loadVendor = async () => {
-  const { data: vendor, error } = await supabase
-    .from("vendors")
-    .select("*")
-    .eq("cart_id", "street-bites-main")
-    .maybeSingle();
+useEffect(() => {
+  const loadVendor = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-  if (error || !vendor) {
-    console.error("Vendor loading error:", error);
-    alert("Vendor account not found.");
-    return;
-  }
+    if (!user) {
+      window.location.href = "/login";
+      return;
+    }
 
-  setCartId(vendor.cart_id);
-};
+    const { data: vendor, error } = await supabase
+      .from("vendors")
+      .select("cart_id, shop_name")
+      .eq("user_id", user.id)
+      .single();
+
+    if (error || !vendor) {
+      console.error("Vendor loading error:", error);
+      alert("Vendor account not found.");
+      return;
+    }
+
+    setCartId(vendor.cart_id);
+  };
 
   loadVendor();
 }, []);
