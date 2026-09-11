@@ -192,7 +192,13 @@ useEffect(() => {
             Orders placed by your customers will appear here.
           </p>
 
-          <Link
+         <Link
+  href="/dashboard/menu"
+  className="mt-4 inline-flex rounded-xl bg-zinc-900 px-5 py-3 text-sm font-bold text-white"
+>
+  🍔 Manage Menu →
+</Link>
+ <Link
             href="/dashboard/qr"
             className="mt-4 inline-flex rounded-xl bg-zinc-950 px-4 py-3 text-sm font-black text-white"
           >
