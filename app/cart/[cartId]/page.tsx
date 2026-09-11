@@ -9,6 +9,6 @@ type CartPageProps = {
  * customer page so cart scanning and ordinary customer ordering use one flow.
  */
 export default async function CartPage({ params }: CartPageProps) {
-  await params;
-  redirect("/");
+  const { cartId } = await params;
+  redirect(`/?cartId=${encodeURIComponent(cartId)}`);
 }

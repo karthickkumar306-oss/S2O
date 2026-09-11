@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
@@ -15,7 +16,21 @@ type Order = {
 };
 
 export default function Dashboard() {
+    const router = useRouter();
   const [order, setOrder] = useState<Order | null>(null);
+useEffect(() => {
+  const checkUser = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      window.location.href = "/login";
+    }
+  };
+
+  checkUser();
+}, []);
 
 useEffect(() => {
   const loadLatestOrder = async () => {
@@ -102,6 +117,10 @@ useEffect(() => {
     alert("Could not update order status.");
     return;
   }
+  const handleLogout = async () => {
+  await supabase.auth.signOut();
+  router.push("/login");
+};
 
   setOrder({
     ...order,
@@ -128,6 +147,7 @@ useEffect(() => {
                 Order Management
               </p>
             </div>
+            
 
             <div className="rounded-full bg-green-500/15 px-4 py-2 text-sm font-bold text-green-400">
               ● OPEN

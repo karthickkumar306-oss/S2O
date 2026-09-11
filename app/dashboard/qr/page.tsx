@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 import { useEffect, useMemo, useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 const createCartId = () =>
   `cart-${Date.now().toString(36)}-${Math.random()
@@ -35,10 +36,23 @@ export default function CartQrSetup() {
       ? `${qrOrigin}/cart/${cleanCartId}`
       : "";
 
-  const generateNewCartId = () => {
-    setCartId(createCartId());
-  };
+ const generateNewCartId = async () => {
+  const newCartId = createCartId();
 
+  const { error } = await supabase.from("carts").insert({
+    cart_id: newCartId,
+    name: shopName,
+  });
+
+  if (error) {
+    console.error("Cart save error:", error);
+    alert("Could not create cart. Please try again.");
+    return;
+  }
+
+  setCartId(newCartId);
+  alert("New cart created successfully!");
+};
   const copyLink = async () => {
     if (!cartUrl) return;
 

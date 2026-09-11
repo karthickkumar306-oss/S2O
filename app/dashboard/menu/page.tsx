@@ -15,9 +15,10 @@ type MenuItem = {
   available: boolean;
 };
 
-const CART_ID = "street-bites-main";
+
 
 export default function MenuManagement() {
+  const [cartId, setCartId] = useState<string | null>(null);
   const [items, setItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -33,7 +34,7 @@ export default function MenuManagement() {
     const { data, error } = await supabase
       .from("menu_items")
       .select("*")
-      .eq("cart_id", CART_ID)
+      .eq("cart_id", cartId)
       .order("created_at", { ascending: true });
 
     if (error) {
@@ -47,8 +48,28 @@ export default function MenuManagement() {
   };
 
   useEffect(() => {
+const loadVendor = async () => {
+  const { data: vendor, error } = await supabase
+    .from("vendors")
+    .select("*")
+    .eq("cart_id", "street-bites-main")
+    .maybeSingle();
+
+  if (error || !vendor) {
+    console.error("Vendor loading error:", error);
+    alert("Vendor account not found.");
+    return;
+  }
+
+  setCartId(vendor.cart_id);
+};
+
+  loadVendor();
+}, []);
+
+  useEffect(() => {
     loadItems();
-  }, []);
+}, [cartId]);
 
   const clearForm = () => {
     setName("");
@@ -71,7 +92,7 @@ export default function MenuManagement() {
     }
 
     const itemData = {
-      cart_id: CART_ID,
+      cart_id: cartId,
       name: name.trim(),
       description: description.trim(),
       price: Number(price),

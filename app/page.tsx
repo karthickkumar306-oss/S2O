@@ -63,20 +63,63 @@ export default function Home() {
   const [cart, setCart] = useState<Cart>({});
   const [showCart, setShowCart] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
+  const [orderId, setOrderId] = useState<string | null>(null);
   const [customerName, setCustomerName] = useState("");
   const [mobile, setMobile] = useState("");
+
+  const [dbMenuItems, setDbMenuItems] = useState<any[]>([]);
+const [menuLoading, setMenuLoading] = useState(true);
+
+const cartId =
+  typeof window !== "undefined"
+    ? new URLSearchParams(window.location.search).get("cartId") ||
+      "street-bites-main"
+    : "street-bites-main";
+useEffect(() => {
+  const loadMenu = async () => {
+    const { data, error } = await supabase
+      .from("menu_items")
+      .select("*")
+      .eq("cart_id", cartId)
+      .eq("available", true)
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      console.error("Menu loading error:", error);
+      setMenuLoading(false);
+      return;
+    }
+
+    setDbMenuItems(data || []);
+    setMenuLoading(false);
+  };
+
+  loadMenu();
+}, []);
 
 
 const [orderStatus, setOrderStatus] = useState<
   "New" | "Preparing" | "Ready" | "Completed"
 >("New");
-  const filteredItems =
-    category === "All"
-      ? menuItems
-      : menuItems.filter((item) => item.category === category);
+ const displayMenuItems =
+  dbMenuItems.length > 0
+    ? dbMenuItems.map((item, index) => ({
+        id: index + 1,
+        name: item.name,
+        description: item.description,
+        price: Number(item.price),
+        category: item.category,
+        emoji: item.emoji,
+      }))
+    : menuItems;
+
+const filteredItems =
+  category === "All"
+    ? displayMenuItems
+    : displayMenuItems.filter((item) => item.category === category);
  
       useEffect(() => {
-  if (!orderPlaced || !mobile) return;
+ if (!orderPlaced || !orderId) return;
 
   const channel = supabase
     .channel("customer-order-status")
@@ -86,7 +129,7 @@ const [orderStatus, setOrderStatus] = useState<
         event: "UPDATE",
         schema: "public",
         table: "orders",
-        filter: `mobile=eq.${mobile}`,
+        filter: `id=eq.${orderId}`,
       },
       (payload) => {
         const updatedOrder = payload.new as {
@@ -103,7 +146,7 @@ const [orderStatus, setOrderStatus] = useState<
   return () => {
     supabase.removeChannel(channel);
   };
-}, [orderPlaced, mobile]);
+}, [orderPlaced, orderId]);
   const cartItems = useMemo(() => {
     return menuItems.filter((item) => cart[item.id]);
   }, [cart]);
@@ -167,15 +210,17 @@ const placeOrder = async () => {
     createdAt: new Date().toISOString(),
   };
 
-  const { error } = await supabase
-    .from("orders")
-    .insert({
-      customer: customerName,
-      mobile: mobile,
-      items: cart,
-      total: subtotal,
-      status: "New",
-    });
+const { data, error } = await supabase
+  .from("orders")
+  .insert({
+    customer: customerName,
+    mobile: mobile,
+    items: cart,
+    total: subtotal,
+    status: "New",
+  })
+  .select("id")
+  .single();
 
   if (error) {
     console.error(
@@ -189,9 +234,10 @@ const placeOrder = async () => {
     return;
   }
 
-  localStorage.setItem("s2o-latest-order", JSON.stringify(order));
+localStorage.setItem("s2o-latest-order", JSON.stringify(...));
 
-  setOrderPlaced(true);
+setOrderId(data.id);
+setOrderPlaced(true);
 };
 
   /* ORDER CONFIRMATION */
