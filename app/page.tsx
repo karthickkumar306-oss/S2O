@@ -239,13 +239,14 @@ const placeOrder = async () => {
 
 const { data, error } = await supabase
   .from("orders")
-  .insert({
-    customer: customerName,
-    mobile: mobile,
-    items: cart,
-    total: subtotal,
-    status: "New",
-  })
+ .insert({
+  customer: customerName,
+  mobile: mobile,
+  cart_id: cartId,
+  items: cart,
+  total: subtotal,
+  status: "New",
+})
   .select("id")
   .single();
 

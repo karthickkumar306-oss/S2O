@@ -18,25 +18,44 @@ type Order = {
 export default function Dashboard() {
     const router = useRouter();
   const [order, setOrder] = useState<Order | null>(null);
+  const [cartId, setCartId] = useState<string | null>(null);
 useEffect(() => {
-  const checkUser = async () => {
+  const loadVendor = async () => {
     const {
       data: { user },
     } = await supabase.auth.getUser();
 
     if (!user) {
       window.location.href = "/login";
+      return;
     }
+
+    const { data: vendor, error } = await supabase
+      .from("vendors")
+      .select("cart_id")
+      .eq("user_id", user.id)
+      .single();
+
+    if (error || !vendor) {
+      console.error("Vendor loading error:", error);
+      alert("Vendor account not found.");
+      return;
+    }
+
+    setCartId(vendor.cart_id);
   };
 
-  checkUser();
+  loadVendor();
 }, []);
 
 useEffect(() => {
+  if (!cartId) return;
+
   const loadLatestOrder = async () => {
     const { data, error } = await supabase
       .from("orders")
       .select("*")
+      .eq("cart_id", cartId)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -62,6 +81,10 @@ useEffect(() => {
   };
 
   loadLatestOrder();
+}, [cartId]);
+
+useEffect(() => {
+  if (!cartId) return;
 
   const channel = supabase
     .channel("orders-dashboard")
@@ -71,6 +94,7 @@ useEffect(() => {
         event: "*",
         schema: "public",
         table: "orders",
+        filter: `cart_id=eq.${cartId}`,
       },
       (payload) => {
         if (
@@ -100,7 +124,7 @@ useEffect(() => {
   return () => {
     supabase.removeChannel(channel);
   };
-}, []);
+}, [cartId]);
 
  const updateStatus = async (
   status: "New" | "Preparing" | "Ready" | "Completed"
