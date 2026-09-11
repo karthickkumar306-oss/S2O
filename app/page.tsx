@@ -118,11 +118,35 @@ const filteredItems =
     ? displayMenuItems
     : displayMenuItems.filter((item) => item.category === category);
  
-      useEffect(() => {
- if (!orderPlaced || !orderId) return;
+useEffect(() => {
+  if (!orderPlaced || !orderId) return;
 
+  const checkOrderStatus = async () => {
+    const { data, error } = await supabase
+      .from("orders")
+      .select("status")
+      .eq("id", orderId)
+      .single();
+
+    if (error) {
+      console.error("Order status check error:", error);
+      return;
+    }
+
+    if (data?.status) {
+      setOrderStatus(data.status);
+    }
+  };
+
+  // Check immediately
+  checkOrderStatus();
+
+  // Check every 2 seconds
+  const interval = setInterval(checkOrderStatus, 2000);
+
+  // Realtime listener
   const channel = supabase
-    .channel("customer-order-status")
+    .channel(`customer-order-${orderId}`)
     .on(
       "postgres_changes",
       {
@@ -136,6 +160,8 @@ const filteredItems =
           status: "New" | "Preparing" | "Ready" | "Completed";
         };
 
+        console.log("Customer order updated:", updatedOrder);
+
         setOrderStatus(updatedOrder.status);
       }
     )
@@ -144,6 +170,7 @@ const filteredItems =
     });
 
   return () => {
+    clearInterval(interval);
     supabase.removeChannel(channel);
   };
 }, [orderPlaced, orderId]);
@@ -298,10 +325,19 @@ setOrderPlaced(true);
               </div>
 
               <div>
-                <p className="font-black">Preparing your order</p>
-                <p className="text-xs text-zinc-500">
-                  The food cart has received your order.
-                </p>
+               <p className="font-black">
+  {orderStatus === "New" && "Order received"}
+  {orderStatus === "Preparing" && "Preparing your order"}
+  {orderStatus === "Ready" && "Your order is ready!"}
+  {orderStatus === "Completed" && "Order completed"}
+</p>
+
+<p className="text-xs text-zinc-500">
+  {orderStatus === "New" && "The food cart has received your order."}
+  {orderStatus === "Preparing" && "The food cart is preparing your order."}
+  {orderStatus === "Ready" && "Please collect your order from the food cart."}
+  {orderStatus === "Completed" && "Thank you for ordering with S2O."}
+</p>
               </div>
             </div>
           </div>
